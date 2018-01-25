@@ -1,10 +1,8 @@
 import base64
 import logging
-import time
 
 from flask import Flask, render_template, request, jsonify, make_response
 from Arlo import Arlo
-
 
 app = Flask(__name__)
 
@@ -13,6 +11,7 @@ app = Flask(__name__)
 def arlo_snapshot():
     return render_template('index.html', **locals())
 
+
 def read_file(filename, string=True):
     with open(filename, 'rb') as input:
         ciphertext = input.read()
@@ -20,28 +19,43 @@ def read_file(filename, string=True):
         if string:
             return plaintext.decode('utf8')
 
-@app.route('/arlo/', methods=['POST'])
+
+@app.route('/arlo', methods=['POST'])
 def tensor_photo():
     USERNAME = 'user'
     PASSWORD = read_file("pass.txt")
 
     try:
-        arlo = Arlo(USERNAME, PASSWORD)
 
-        cameras = arlo.GetDevices('camera')
+        req = request.get_json(silent=True, force=True)
+        action = req.get('result').get('action')
 
-        # Take the snapshot.
-        arlo.TakeSnapshot(cameras[2])
+        if action == 'image.analysis':
+            arlo = Arlo(USERNAME, PASSWORD)
 
-        # Compose the response to API.AI
-        res = {'speech': 'yes',
-               'displayText': 'yes'}
+            cameras = arlo.GetDevices('camera')
 
-        return make_response(jsonify(res))
+            # Take the snapshot.
+            arlo.TakeSnapshot(cameras[2])
+
+            # Compose the response to API.AI
+
+            res = {'speech': 'I found your pet',
+                   'displayText': 'I found your pet',
+                   'contextOut': req['result']['contexts']}
+
+        else:
+
+            res = {'speech': 'error', 'displayText': 'error'}
+
+        final = make_response(jsonify(res))
+        return final
 
     except Exception as e:
         res = {'speech': 'error', 'displayText': 'error'}
-        return make_response(jsonify(res))
+        final = make_response(jsonify(res))
+
+        return final
 
 
 @app.errorhandler(500)
