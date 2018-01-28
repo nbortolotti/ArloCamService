@@ -24,14 +24,24 @@ def read_file(filename, string=True):
 
 
 # objective: method designed to connect  and pass a picture to TensorPhotoXRay.
-def connect_tensor_xray(img_url):
-    # todo: use if needed check a typical response.
-    # rsp = [{"person": 97}, {"chair": 95}, {"person": 95}, {"couch": 92}, {"chair": 82}, {"tv": 81}, {"tv": 81}, {"chair": 79}, {"dog": 76}, {"book": 65}]
-
+def connect_tensor_xray():
     try:
-        url = "tensorphotoxray_url"
-        r = requests.get()  # todo: change for a post call
+        arlo = PyArlo('user', read_file("pass.txt"))
+        cam = arlo.cameras[2]
+        cam.schedule_snapshot()
+
+        time.sleep(3)
+
+        r = requests.get("url_endpoint" + cam.snapshot_url)  # todo: change for a post call
         return r
+    except Exception as e:
+        return [{"error"}]
+
+
+def connect_tensor_xray_testing():
+    # todo: use if needed check a typical response.
+    try:
+        return [{"person": 97}, {"chair": 95}, {"person": 95}, {"couch": 92}, {"chair": 82}, {"tv": 81}, {"tv": 81}, {"chair": 79}, {"dog": 76}, {"book": 65}]
     except Exception as e:
         return [{"error"}]
 
@@ -42,19 +52,15 @@ def connect_tensor_xray(img_url):
 def tensor_photo():
     try:
         # connect to Arlo using PyArlo library.
-        arlo = PyArlo('user', read_file("pass.txt"))
 
         req = request.get_json(silent=True, force=True)
         action = req.get('result').get('action')
 
         # detect action from DialogFlow agent description.
         if action == 'image.analysis':
-            cam = arlo.cameras[2]
-            cam.schedule_snapshot()
 
-            time.sleep(5)
+            tags = connect_tensor_xray() # method to use the integration to TensorPhotoXRay
 
-            tags = connect_tensor_xray(cam.snapshot_url)
             for element in tags:
                 for key, value in element.iteritems():
                     if "dog" in key:
@@ -62,8 +68,47 @@ def tensor_photo():
                         res = {'speech': 'Your pet is inside your house in the main room',
                                'displayText': 'Your pet is inside your house in the main room',
                                'contextOut': req['result']['contexts']}
+
+
+            if res != {'speech': 'Your pet is inside your house in the main room',
+                       'displayText': 'Your pet is inside your house in the main room',
+                       'contextOut': 'demo'}:
+                res = {'speech': 'I can not find your pet at home',
+                       'displayText': 'I can not find your pet at home',
+                       'contextOut': 'demo'}
         else:
-            res = {'speech': 'error', 'displayText': 'error'}
+            res = {'speech': 'nothing', 'displayText': 'nothing'}
+
+        final = make_response(jsonify(res))
+        return final
+
+    except Exception as e:
+        res = {'speech': 'error', 'displayText': 'error'}
+        final = make_response(jsonify(res))
+        return final
+
+
+@app.route('/arlo2', methods=['GET'])
+def tensor_photo2():
+    try:
+
+        tags = connect_tensor_xray_testing()
+
+        for element in tags:
+            for key, value in element.iteritems():
+                if "dog" in key:
+                    # Compose the response to API.AI
+                    res = {'speech': 'Your pet is inside your house in the main room',
+                           'displayText': 'Your pet is inside your house in the main room',
+                           'contextOut': 'demo'}
+
+        if res != {'speech': 'Your pet is inside your house in the main room',
+                   'displayText': 'Your pet is inside your house in the main room',
+                   'contextOut': 'demo'}:
+            res = {'speech': 'I can not find your pet at home',
+                   'displayText': 'I can not find your pet at home',
+                   'contextOut': 'demo'}
+
 
         final = make_response(jsonify(res))
         return final
