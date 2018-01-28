@@ -26,11 +26,11 @@ def read_file(filename, string=True):
 # objective: method designed to connect  and pass a picture to TensorPhotoXRay.
 def connect_tensor_xray():
     try:
-        arlo = PyArlo('user', read_file("pass.txt"))
-        cam = arlo.cameras[2]
-        cam.schedule_snapshot()
+        arlo = PyArlo('user', read_file("pass.txt"))  # connect to pyarlo library
+        cam = arlo.cameras[2]  # selecting cam
+        cam.schedule_snapshot()  # take picture
 
-        time.sleep(3)
+        time.sleep(3) # wait if is necesarry
 
         r = requests.get("url_endpoint" + cam.snapshot_url)  # todo: change for a post call
         return r
